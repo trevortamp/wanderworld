@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<div id="world"></div>
+<button onclick="join()">Join</button>
+
+<style>
+    body {
+        background-color: #1e1e1e;
+        color: white;
+    }
+#world {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    border: 1px solid black;
+    background-image: url("https://tinkr.tech/sdb_apps/wanderworld/images/grass.png");
+    margin: 0 auto;
+}
+</style>
+
+<script>
+const API = "https://tinkr.tech/sdb/a/wanderworld";
+
+
+
+async function render() {
+  const res = await fetch(API);
+  const state = await res.json();
+
+  const world = document.getElementById("world");
+  world.innerHTML = "";
+
+  for (const p of state.players) {
+    const el = document.createElement("div");
+    el.style.position = "absolute";
+    el.style.left = p.x + "px";
+    el.style.top = p.y + "px";
+
+    const img = document.createElement("img");
+    img.src = "https://tinkr.tech" + p.image;
+
+    el.appendChild(img);
+    world.appendChild(el);
+  }
+}
+
+setInterval(render, 1000);
+render();
+</script>
+
+</body>
+</html>
