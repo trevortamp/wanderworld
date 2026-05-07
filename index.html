@@ -1,54 +1,236 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Wanderworld</title>
+
+  <style>
+    body {
+      background: #7ec850;
+      font-family: Arial;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #topbar {
+      margin-bottom: 10px;
+    }
+
+    #world {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      border: 3px solid black;
+      background-image: url('/sdb_apps/wanderworld/images/grass.png');
+      overflow: hidden;
+    }
+
+    .player {
+      position: absolute;
+      text-align: center;
+      transform: translate(-50%, -50%);
+    }
+
+    .player img {
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+    }
+
+    .username {
+      background: rgba(255,255,255,0.8);
+      font-size: 12px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: 55px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 5px;
+      border-radius: 8px;
+      border: 1px solid black;
+      font-size: 12px;
+      min-width: 50px;
+      white-space: nowrap;
+    }
+
+    #chatInput {
+      width: 250px;
+    }
+  </style>
+</head>
 <body>
 
-<div id="world"></div>
-<button onclick="join()">Join</button>
+  <h1>Wanderworld</h1>
 
-<style>
-    body {
-        background-color: #1e1e1e;
-        color: white;
+  <div id="topbar">
+    <input id="usernameInput" placeholder="username">
+    <button onclick="joinGame()">Join</button>
+
+    <input id="chatInput" placeholder="say something">
+    <button onclick="sendMessage()">Talk</button>
+  </div>
+
+  <div id="world"></div>
+
+  <script>
+
+    // CHANGE THIS TO YOUR DATABASE
+    const GAME_URL = '/sdb/a/wanderworld';
+
+    const world = document.getElementById('world');
+
+    let playerKey = localStorage.getItem('playerKey');
+
+    async function getWorld() {
+
+      const response = await fetch(GAME_URL);
+
+      const state = await response.json();
+
+      renderWorld(state);
     }
-#world {
-    position: relative;
-    width: 800px;
-    height: 600px;
-    border: 1px solid black;
-    background-image: url("https://tinkr.tech/sdb_apps/wanderworld/images/grass.png");
-    margin: 0 auto;
-}
-</style>
 
-<script>
-const API = "https://tinkr.tech/sdb/a/wanderworld";
+    function renderWorld(state) {
 
+      world.innerHTML = '';
 
+      for (const player of state.players) {
 
-async function render() {
-  const res = await fetch(API);
-  const state = await res.json();
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player';
 
-  const world = document.getElementById("world");
-  world.innerHTML = "";
+        playerDiv.style.left = player.x + 'px';
+        playerDiv.style.top = player.y + 'px';
 
-  for (const p of state.players) {
-    const el = document.createElement("div");
-    el.style.position = "absolute";
-    el.style.left = p.x + "px";
-    el.style.top = p.y + "px";
+        const img = document.createElement('img');
+        img.src = player.image;
 
-    const img = document.createElement("img");
-    img.src = "https://tinkr.tech" + p.image;
+        const username = document.createElement('div');
+        username.className = 'username';
+        username.innerText = player.username;
 
-    el.appendChild(img);
-    world.appendChild(el);
-  }
-}
+        playerDiv.appendChild(img);
+        playerDiv.appendChild(username);
 
-setInterval(render, 1000);
-render();
-</script>
+        if (player.message != null) {
+
+          const bubble = document.createElement('div');
+          bubble.className = 'bubble';
+          bubble.innerText = player.message;
+
+          playerDiv.appendChild(bubble);
+        }
+
+        world.appendChild(playerDiv);
+      }
+    }
+
+    async function joinGame() {
+
+      const username = document.getElementById('usernameInput').value;
+
+      const response = await fetch(GAME_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'join',
+          username: username
+        })
+      });
+
+      const data = await response.json();
+
+      console.log(data);
+
+      if (data.player_key) {
+        playerKey = data.player_key;
+        localStorage.setItem('playerKey', playerKey);
+
+        alert('joined game');
+      } else {
+        alert(JSON.stringify(data));
+      }
+    }
+
+    async function movePlayer(x, y) {
+
+      if (!playerKey) {
+        alert('join first');
+        return;
+      }
+
+      const response = await fetch(GAME_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'move',
+          player_key: playerKey,
+          x: x,
+          y: y
+        })
+      });
+
+      const data = await response.json();
+
+      console.log(data);
+    }
+
+    async function sendMessage() {
+
+      const message = document.getElementById('chatInput').value;
+
+      if (!playerKey) {
+        alert('join first');
+        return;
+      }
+
+      const response = await fetch(GAME_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'talk',
+          player_key: playerKey,
+          message: message
+        })
+      });
+
+      const data = await response.json();
+
+      console.log(data);
+
+      document.getElementById('chatInput').value = '';
+    }
+
+    world.addEventListener('click', function(event) {
+
+      const rect = world.getBoundingClientRect();
+
+      const x = Math.floor(event.clientX - rect.left);
+      const y = Math.floor(event.clientY - rect.top);
+
+      movePlayer(x, y);
+    });
+
+    getWorld();
+
+    setInterval(getWorld, 1000);
+
+  </script>
 
 </body>
 </html>
