@@ -4,4 +4,4 @@ const response = await fetch('https://tinkr.tech/sdb/a', {
   body: JSON.stringify({ name: 'John', age: 25 })
 });
 const data = await response.json();
-console.log(data); // {"id": "...", "name": "John", "age": 25}
+console.log(data); 
