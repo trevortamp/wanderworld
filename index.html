@@ -1,236 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Wanderworld</title>
-
-  <style>
-    body {
-      background: #7ec850;
-      font-family: Arial;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 10px;
-    }
-
-    #topbar {
-      margin-bottom: 10px;
-    }
-
-    #world {
-      position: relative;
-      width: 800px;
-      height: 600px;
-      border: 3px solid black;
-      background-image: url('/sdb_apps/wanderworld/images/grass.png');
-      overflow: hidden;
-    }
-
-    .player {
-      position: absolute;
-      text-align: center;
-      transform: translate(-50%, -50%);
-    }
-
-    .player img {
-      width: 32px;
-      height: 32px;
-      image-rendering: pixelated;
-    }
-
-    .username {
-      background: rgba(255,255,255,0.8);
-      font-size: 12px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      margin-top: 2px;
-    }
-
-    .bubble {
-      position: absolute;
-      bottom: 55px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 5px;
-      border-radius: 8px;
-      border: 1px solid black;
-      font-size: 12px;
-      min-width: 50px;
-      white-space: nowrap;
-    }
-
-    #chatInput {
-      width: 250px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wanderworld</title>
 </head>
+<style>
+body {
+    background: #676767;
+    color: white;
+}
+#world {
+    width: 800px;
+    height: 600px;
+    margin: auto;
+    background: green;
+}
+.player {
+    position: absolute;
+    text-align: center;
+}
+.player img {
+    width: 64px;
+}
+
+</style>
+
 <body>
+<h1> Wanderworld</h1>
+<div id="world"></div>
+<input id="name" placeholder="Your name">
+<button onclick="join()">Join</button>    
+<input id="message" placeholder="Chat">
 
-  <h1>Wanderworld</h1>
+<script>
+  const URL = "https://tinkr.tech/sdb/a/wanderworld";
 
-  <div id="topbar">
-    <input id="usernameInput" placeholder="username">
-    <button onclick="joinGame()">Join</button>
+let playerKey = "";
 
-    <input id="chatInput" placeholder="say something">
-    <button onclick="sendMessage()">Talk</button>
-  </div>
 
-  <div id="world"></div>
+async function join() {
 
-  <script>
+  const username = document.getElementById("name").value;
 
-    // CHANGE THIS TO YOUR DATABASE
-    const GAME_URL = '/sdb/a/wanderworld';
+  const response = await fetch(URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "join",
+      username: username
+    })
+  });
 
-    const world = document.getElementById('world');
+  const data = await response.json();
 
-    let playerKey = localStorage.getItem('playerKey');
+  playerKey = data.player_key;
 
-    async function getWorld() {
+  alert("Joined!");
+}
 
-      const response = await fetch(GAME_URL);
 
-      const state = await response.json();
+async function render() {
 
-      renderWorld(state);
-    }
+  const response = await fetch(URL);
+  const data = await response.json();
 
-    function renderWorld(state) {
+  const world = document.getElementById("world");
 
-      world.innerHTML = '';
+  world.innerHTML = "";
 
-      for (const player of state.players) {
+  for (let player of data.players) {
 
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'player';
+    const div = document.createElement("div");
+    div.className = "player";
 
-        playerDiv.style.left = player.x + 'px';
-        playerDiv.style.top = player.y + 'px';
+    div.style.left = player.x + "px";
+    div.style.top = player.y + "px";
 
-        const img = document.createElement('img');
-        img.src = player.image;
+    div.innerHTML = `
+      <img src="https://tinkr.tech${player.image}">
+      <div>${player.username}</div>
+      <div class="chat">${player.message || ""}</div>
+    `;
 
-        const username = document.createElement('div');
-        username.className = 'username';
-        username.innerText = player.username;
-
-        playerDiv.appendChild(img);
-        playerDiv.appendChild(username);
-
-        if (player.message != null) {
-
-          const bubble = document.createElement('div');
-          bubble.className = 'bubble';
-          bubble.innerText = player.message;
-
-          playerDiv.appendChild(bubble);
-        }
-
-        world.appendChild(playerDiv);
-      }
-    }
-
-    async function joinGame() {
-
-      const username = document.getElementById('usernameInput').value;
-
-      const response = await fetch(GAME_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'join',
-          username: username
-        })
-      });
-
-      const data = await response.json();
-
-      console.log(data);
-
-      if (data.player_key) {
-        playerKey = data.player_key;
-        localStorage.setItem('playerKey', playerKey);
-
-        alert('joined game');
-      } else {
-        alert(JSON.stringify(data));
-      }
-    }
-
-    async function movePlayer(x, y) {
-
-      if (!playerKey) {
-        alert('join first');
-        return;
-      }
-
-      const response = await fetch(GAME_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'move',
-          player_key: playerKey,
-          x: x,
-          y: y
-        })
-      });
-
-      const data = await response.json();
-
-      console.log(data);
-    }
-
-    async function sendMessage() {
-
-      const message = document.getElementById('chatInput').value;
-
-      if (!playerKey) {
-        alert('join first');
-        return;
-      }
-
-      const response = await fetch(GAME_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'talk',
-          player_key: playerKey,
-          message: message
-        })
-      });
-
-      const data = await response.json();
-
-      console.log(data);
-
-      document.getElementById('chatInput').value = '';
-    }
-
-    world.addEventListener('click', function(event) {
-
-      const rect = world.getBoundingClientRect();
-
-      const x = Math.floor(event.clientX - rect.left);
-      const y = Math.floor(event.clientY - rect.top);
-
-      movePlayer(x, y);
-    });
-
-    getWorld();
-
-    setInterval(getWorld, 1000);
-
-  </script>
-
+    world.appendChild(div);
+  }
+}
+</script>
 </body>
+
 </html>
