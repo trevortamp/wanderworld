@@ -1,94 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="et">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wanderworld</title>
-</head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wanderworld</title>
+
 <style>
 body {
     background: #676767;
     color: white;
+    font-family: Arial;
+    text-align: center;
 }
+
 #world {
     width: 800px;
     height: 600px;
     margin: auto;
     background: green;
+    position: relative; /* OLULINE */
+    overflow: hidden;
 }
+
 .player {
     position: absolute;
     text-align: center;
+    color: white;
 }
+
 .player img {
     width: 64px;
+    display: block;
 }
 
+.chat {
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 5px;
+    margin-top: 4px;
+}
 </style>
+</head>
 
 <body>
-<h1> Wanderworld</h1>
+
+<h1>Wanderworld</h1>
+
 <div id="world"></div>
+
+<br>
+
 <input id="name" placeholder="Your name">
-<button onclick="join()">Join</button>    
-<input id="message" placeholder="Chat">
+<button onclick="join()">Join</button>
 
 <script>
-  const URL = "https://tinkr.tech/sdb/a/wanderworld";
+const URL = "https://tinkr.tech/sdb/a/wanderworld";
 
 let playerKey = "";
 
-
 async function join() {
 
-  const username = document.getElementById("name").value;
+    const username = document.getElementById("name").value;
 
-  const response = await fetch(URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      action: "join",
-      username: username
-    })
-  });
+    const response = await fetch(URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            action: "join",
+            username: username
+        })
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  playerKey = data.player_key;
+    console.log(data);
 
-  alert("Joined!");
+    playerKey = data.player_key;
+
+    alert("Joined!");
 }
-
 
 async function render() {
 
-  const response = await fetch(URL);
-  const data = await response.json();
+    try {
 
-  const world = document.getElementById("world");
+        const response = await fetch(URL);
+        const data = await response.json();
 
-  world.innerHTML = "";
+        console.log(data);
 
-  for (let player of data.players) {
+        const world = document.getElementById("world");
 
-    const div = document.createElement("div");
-    div.className = "player";
+        world.innerHTML = "";
 
-    div.style.left = player.x + "px";
-    div.style.top = player.y + "px";
+        // kontrollime et players eksisteerib
+        if (!data.players) return;
 
-    div.innerHTML = `
-      <img src="https://tinkr.tech${player.image}">
-      <div>${player.username}</div>
-      <div class="chat">${player.message || ""}</div>
-    `;
+        for (let player of data.players) {
 
-    world.appendChild(div);
-  }
+            const div = document.createElement("div");
+            div.className = "player";
+
+            div.style.left = player.x + "px";
+            div.style.top = player.y + "px";
+
+            div.innerHTML = `
+                <img src="https://tinkr.tech${player.image}">
+                <div>${player.username}</div>
+                <div class="chat">${player.message || ""}</div>
+            `;
+
+            world.appendChild(div);
+        }
+
+    } catch (err) {
+        console.error(err);
+    }
 }
-</script>
-</body>
 
+/* render iga 1 sekundi tagant */
+setInterval(render, 1000);
+
+render();
+</script>
+
+</body>
 </html>
